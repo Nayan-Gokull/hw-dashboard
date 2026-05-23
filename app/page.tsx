@@ -183,17 +183,21 @@ export default function LivePage() {
             padding: '10px 0',
           }}>
             {[
-              { label: 'Time',       value: (displayed.elapsed_ms / 1000).toFixed(3) + 's' },
-              { label: 'Actual mph', value: displayed.speed_mph.toFixed(2) + ' mph'         },
-              { label: 'Actual km/h',value: displayed.speed_kmh.toFixed(2) + ' km/h'        },
-            ].map(({ label, value }) => (
+              { label: 'Time',        num: (displayed.elapsed_ms / 1000).toFixed(3), unit: 's'    },
+              { label: 'Actual mph',  num: displayed.speed_mph.toFixed(2),            unit: 'mph'  },
+              { label: 'Actual km/h', num: displayed.speed_kmh.toFixed(2),            unit: 'km/h' },
+            ].map(({ label, num, unit }) => (
               <div key={label} style={{
                 background: '#0f0f0f', border: '1px solid #1a1a1a', borderRadius: '12px',
-                padding: '12px 16px',
-                display: 'flex', flexDirection: 'column', gap: '4px',
+                padding: '14px 16px',
+                display: 'flex', flexDirection: 'column', gap: '6px',
+                overflow: 'visible',
               }}>
                 <span style={{ color: '#333', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase' }}>{label}</span>
-                <span className="dseg" style={{ color: '#666', fontSize: '18px' }}>{value}</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                  <span className="dseg" style={{ color: '#666', fontSize: '22px', lineHeight: 1.2 }}>{num}</span>
+                  <span style={{ color: '#333', fontSize: '11px', letterSpacing: '1px' }}>{unit}</span>
+                </div>
               </div>
             ))}
           </div>
