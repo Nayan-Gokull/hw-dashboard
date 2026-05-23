@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Run } from '@/lib/store';
+import type { LaunchState } from '@/app/api/status/route';
 
 const AMBER       = '#F5A800';
 const AMBER_DIM   = 'rgba(245,168,0,0.10)';
@@ -24,7 +25,7 @@ function playBeep() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.22);
-  } catch { /* autoplay policy blocked — silent fail */ }
+  } catch { /* autoplay policy blocked */ }
 }
 
 export default function LivePage() {
@@ -35,6 +36,8 @@ export default function LivePage() {
   const [countedSpeed, setCountedSpeed] = useState(0);
   const [isNewBest,    setIsNewBest]    = useState(false);
   const [signalLost,   setSignalLost]   = useState(false);
+  const [launchState,  setLaunchState]  = useState<LaunchState>('idle');
+  const [countdown,    setCountdown]    = useState<number | null>(null);
 
   const prevRunId    = useRef<number | null>(null);
   const lastSuccess  = useRef<number>(Date.now());
@@ -42,15 +45,21 @@ export default function LivePage() {
   const newBestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const allRunsRef   = useRef<Run[]>([]);
 
-  // ── Poll every 500 ms ──────────────────────────────────────────────────────
+  // ── Poll runs + status every 500 ms ───────────────────────────────────────
   useEffect(() => {
     const poll = async () => {
       try {
-        const res  = await fetch('/api/runs');
-        const runs: Run[] = await res.json();
+        const [runsRes, statusRes] = await Promise.all([
+          fetch('/api/runs'),
+          fetch('/api/status'),
+        ]);
+        const runs: Run[]              = await runsRes.json();
+        const status: { state: LaunchState } = await statusRes.json();
+
         setConnected(true);
         setSignalLost(false);
         lastSuccess.current = Date.now();
+        setLaunchState(status.state);
         allRunsRef.current = runs;
         if (runs.length > 0)
           setLatest(prev => (prev?.run_id === runs[0].run_id ? prev : runs[0]));
@@ -71,6 +80,21 @@ export default function LivePage() {
     return () => clearInterval(id);
   }, []);
 
+  // ── Countdown animation (3 → 2 → 1) driven by launchState ────────────────
+  useEffect(() => {
+    if (launchState === 'countdown') {
+      setCountdown(3);
+      let count = 3;
+      const id = setInterval(() => {
+        count--;
+        setCountdown(count > 0 ? count : null);
+        if (count <= 0) clearInterval(id);
+      }, 1000);
+      return () => clearInterval(id);
+    }
+    setCountdown(null);
+  }, [launchState]);
+
   // ── Broadcast transition on new run_id ────────────────────────────────────
   useEffect(() => {
     const newId = latest?.run_id ?? null;
@@ -87,13 +111,12 @@ export default function LivePage() {
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [latest]);
 
-  // ── Animated counter + new-best check (fires when transition fully clears) ─
+  // ── Animated counter + new-best (fires when transition fully clears) ───────
   useEffect(() => {
     if (transPhase !== 'idle' || !displayed) return;
 
     const target = Math.round(displayed.scale_mph);
 
-    // Best of every run OTHER than the currently displayed one
     const prevBest = allRunsRef.current
       .filter(r => r.run_id !== displayed.run_id)
       .reduce((best, r) => Math.max(best, r.scale_mph), 0);
@@ -106,7 +129,6 @@ export default function LivePage() {
       setIsNewBest(false);
     }
 
-    // Animate 0 → target over 800 ms with ease-out cubic
     if (animFrame.current) cancelAnimationFrame(animFrame.current);
     setCountedSpeed(0);
     const t0       = performance.now();
@@ -122,6 +144,9 @@ export default function LivePage() {
   }, [transPhase, displayed]);
 
   const digits = displayed ? countedSpeed.toString().padStart(3, '0') : null;
+
+  // CRT shows launch state when ESP32 is actively launching
+  const showingLaunch = launchState !== 'idle';
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#0a0a0a', overflow: 'hidden' }}>
@@ -184,12 +209,59 @@ export default function LivePage() {
               background: 'radial-gradient(ellipse 75% 60% at 50% 50%, transparent 40%, rgba(0,0,0,0.75) 100%)',
             }} />
 
+            {/* ── LAUNCH STATES ──────────────────────────────── */}
+            {showingLaunch && (
+              <div style={{ position: 'relative', zIndex: 3, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
+
+                {/* COUNTDOWN */}
+                {launchState === 'countdown' && (
+                  <>
+                    <div style={{ color: '#333', fontSize: '11px', letterSpacing: '6px', textTransform: 'uppercase' }}>
+                      LAUNCH IN
+                    </div>
+                    <div
+                      key={countdown}
+                      className="dseg countdown-pop"
+                      style={{
+                        fontSize: 'clamp(100px, 18vw, 200px)',
+                        color: AMBER,
+                        lineHeight: 1,
+                        textShadow: `0 0 20px rgba(245,168,0,0.6), 0 0 60px rgba(245,140,0,0.25)`,
+                      }}
+                    >
+                      {countdown ?? '!'}
+                    </div>
+                  </>
+                )}
+
+                {/* ARMED — gate open, waiting for car */}
+                {launchState === 'armed' && (
+                  <>
+                    <div style={{ color: '#222', fontSize: '11px', letterSpacing: '6px', textTransform: 'uppercase' }}>
+                      GATE OPEN
+                    </div>
+                    <div className="dseg ready-blink" style={{
+                      fontSize: 'clamp(32px, 5vw, 56px)',
+                      color: AMBER,
+                      letterSpacing: '12px',
+                      filter: `drop-shadow(0 0 10px ${AMBER})`,
+                    }}>
+                      ARMED
+                    </div>
+                    <div style={{ color: '#2a2a2a', fontSize: '11px', letterSpacing: '4px', textTransform: 'uppercase' }}>
+                      WAITING FOR CAR
+                    </div>
+                  </>
+                )}
+
+              </div>
+            )}
+
             {/* ── IDLE STATE ─────────────────────────────── */}
-            {!displayed && (
+            {!showingLaunch && !displayed && (
               <div style={{ position: 'relative', zIndex: 3, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px' }}>
 
                 {signalLost ? (
-                  /* Signal lost */
                   <>
                     <div className="dseg" style={{ fontSize: 'clamp(20px, 3vw, 30px)', color: '#C8290A', letterSpacing: '8px' }}>
                       SIGNAL
@@ -202,9 +274,7 @@ export default function LivePage() {
                     </div>
                   </>
                 ) : (
-                  /* Normal ready state */
                   <>
-                    {/* Wipe logo */}
                     <div style={{ position: 'relative', width: '300px', height: '107px', overflow: 'hidden' }}>
                       <div className="wipe-stripe" style={{
                         position: 'absolute', top: 0, height: '107px', width: '3px',
@@ -216,13 +286,9 @@ export default function LivePage() {
                         <Image src="/logo.png" alt="N1 Racing" width={300} height={107} style={{ objectFit: 'contain', display: 'block' }} />
                       </div>
                     </div>
-
-                    {/* Ghost digits */}
                     <div className="dseg" style={{ fontSize: 'clamp(64px, 10vw, 110px)', color: AMBER_DIM, letterSpacing: '6px', lineHeight: 1 }}>
                       888
                     </div>
-
-                    {/* READY */}
                     <div className="dseg ready-blink" style={{
                       fontSize: '22px', letterSpacing: '14px', color: AMBER,
                       filter: `drop-shadow(0 0 6px ${AMBER})`,
@@ -235,14 +301,13 @@ export default function LivePage() {
             )}
 
             {/* ── RUN STATE ──────────────────────────────── */}
-            {displayed && (
+            {!showingLaunch && displayed && (
               <div style={{ position: 'relative', zIndex: 3, textAlign: 'center', width: '100%', padding: '0 48px' }}>
 
                 <div style={{ color: '#222', fontSize: '11px', letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '16px' }}>
                   RUN #{displayed.run_id}
                 </div>
 
-                {/* Hero speed — animated counter */}
                 <div className="dseg" style={{
                   fontSize: 'clamp(80px, 13vw, 150px)',
                   color: AMBER,
@@ -258,7 +323,6 @@ export default function LivePage() {
                   SCALE SPEED
                 </div>
 
-                {/* New best badge */}
                 {isNewBest && (
                   <div className="new-best-badge" style={{
                     marginTop: '22px',
@@ -276,14 +340,13 @@ export default function LivePage() {
                     NEW BEST
                   </div>
                 )}
-
               </div>
             )}
           </div>
         </div>
 
-        {/* Stats strip — only shown after a run */}
-        {displayed && (
+        {/* Stats strip */}
+        {!showingLaunch && displayed && (
           <div style={{
             flexShrink: 0,
             display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
@@ -309,10 +372,9 @@ export default function LivePage() {
             ))}
           </div>
         )}
-
       </div>
 
-      {/* ── TV Broadcast transition overlay ───────────────────────── */}
+      {/* TV Broadcast transition overlay */}
       {transPhase !== 'idle' && (
         <div className={transPhase === 'in' ? 'tv-wipe-in' : 'tv-wipe-out'} style={{
           position: 'fixed', inset: 0, zIndex: 100,
