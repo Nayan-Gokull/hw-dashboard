@@ -105,11 +105,26 @@ export default function LivePage() {
 
           </div>
         ) : (
-          <div className="waiting-pulse" style={{ textAlign: 'center' }}>
-            <div className="dseg speed-gradient-dim" style={{ fontSize: 'clamp(96px, 18vw, 160px)', lineHeight: 0.9, letterSpacing: '-4px', marginBottom: '28px' }}>
-              8:88.8
+          <div style={{ textAlign: 'center', position: 'relative', overflow: 'hidden', padding: '20px 0' }}>
+            {/* Sweeping shimmer */}
+            <div className="stripe-sweep" />
+
+            {/* Big glowing logo */}
+            <div className="logo-glow" style={{ display: 'inline-block', background: 'white', borderRadius: '24px', padding: '24px 40px', marginBottom: '40px' }}>
+              <Image src="/logo.png" alt="N1 Racing" width={200} height={70} style={{ objectFit: 'contain', display: 'block' }} />
             </div>
-            <p style={{ color: '#2a2a2a', fontSize: '11px', letterSpacing: '4px', textTransform: 'uppercase' }}>Waiting for car...</p>
+
+            {/* Stripe accent */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginBottom: '28px' }}>
+              {['#F5B800','#F07000','#C8290A'].map(c => (
+                <div key={c} style={{ width: '32px', height: '3px', borderRadius: '2px', background: c, opacity: 0.6 }} />
+              ))}
+            </div>
+
+            {/* DSEG ready */}
+            <div className="dseg ready-blink" style={{ fontSize: '22px', letterSpacing: '12px', textTransform: 'uppercase', color: '#F5B800' }}>
+              READY
+            </div>
           </div>
         )}
 

@@ -60,3 +60,28 @@ body {
   50% { opacity: 0.8; }
 }
 .waiting-pulse { animation: waiting-pulse 2s ease-in-out infinite; }
+
+@keyframes logo-glow {
+  0%, 100% { box-shadow: 0 0 40px rgba(245,184,0,0.15), 0 0 80px rgba(240,112,0,0.08); }
+  50%       { box-shadow: 0 0 80px rgba(245,184,0,0.35), 0 0 160px rgba(200,41,10,0.2); }
+}
+.logo-glow { animation: logo-glow 2.5s ease-in-out infinite; }
+
+@keyframes ready-blink {
+  0%, 45%  { opacity: 1; }
+  50%, 95% { opacity: 0.08; }
+  100%     { opacity: 1; }
+}
+.ready-blink { animation: ready-blink 1.6s step-end infinite; }
+
+@keyframes stripe-sweep {
+  0%   { left: -60%; }
+  100% { left: 120%; }
+}
+.stripe-sweep {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(245,184,0,0.06), rgba(240,112,0,0.04), transparent);
+  animation: stripe-sweep 3s ease-in-out infinite;
+}
