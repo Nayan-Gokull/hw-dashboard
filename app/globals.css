@@ -1,12 +1,5 @@
 @import "tailwindcss";
-
-@font-face {
-  font-family: 'DSEG7';
-  src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7Classic/DSEG7Classic-Regular.woff2') format('woff2');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
+@import url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.css');
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -14,45 +7,46 @@ body {
   background: #0a0a0a;
   color: #f0f0f0;
   font-family: Arial, Helvetica, sans-serif;
+  height: 100%;
 }
 
-.dseg { font-family: 'DSEG7', 'Courier New', monospace; }
+html { height: 100%; }
 
-/* ── Stripe bar ─────────────────────────────────────────────────── */
+.dseg { font-family: 'DSEG7 Classic', monospace; }
+
 .stripe-bar {
   background: linear-gradient(90deg, #F5B800 0%, #F07000 50%, #C8290A 100%);
 }
 
-/* ── Logo wipe reveal ───────────────────────────────────────────── */
-@keyframes logo-clip-reveal {
-  0%, 6%    { clip-path: inset(0 101% 0 0); }
-  40%       { clip-path: inset(0 0%   0 0); opacity: 1; }
-  68%       { clip-path: inset(0 0%   0 0); opacity: 1; }
-  85%       { clip-path: inset(0 0%   0 0); opacity: 0; }
-  86%, 100% { clip-path: inset(0 101% 0 0); opacity: 0; }
+/* Wipe logo reveal */
+@keyframes logo-clip {
+  0%, 5%    { clip-path: inset(0 101% 0 0); }
+  38%       { clip-path: inset(0 0%   0 0); opacity: 1; }
+  65%       { clip-path: inset(0 0%   0 0); opacity: 1; }
+  82%       { clip-path: inset(0 0%   0 0); opacity: 0; }
+  83%, 100% { clip-path: inset(0 101% 0 0); opacity: 0; }
 }
-.logo-reveal { animation: logo-clip-reveal 5s ease-in-out infinite; }
+.logo-reveal { animation: logo-clip 5s ease-in-out infinite; }
 
-/* Thin glowing stripe tracks the reveal leading edge */
-@keyframes stripe-track {
-  0%, 5%    { left: -1%;  opacity: 0; }
-  6%        { left: -1%;  opacity: 1; }
-  40%       { left: 101%; opacity: 1; }
-  41%, 100% { left: 101%; opacity: 0; }
+@keyframes stripe-move {
+  0%, 5%    { left: -2%;  opacity: 0; }
+  6%        { left: -2%;  opacity: 1; }
+  38%       { left: 102%; opacity: 1; }
+  39%, 100% { left: 102%; opacity: 0; }
 }
-.wipe-stripe { animation: stripe-track 5s ease-in-out infinite; }
+.wipe-stripe { animation: stripe-move 5s ease-in-out infinite; }
 
-/* ── READY blink ────────────────────────────────────────────────── */
+/* READY blink */
 @keyframes ready-blink {
-  0%, 44%  { opacity: 1;    }
-  50%, 94% { opacity: 0.07; }
-  100%     { opacity: 1;    }
+  0%, 44%  { opacity: 1;   }
+  50%, 94% { opacity: 0.06; }
+  100%     { opacity: 1;   }
 }
 .ready-blink { animation: ready-blink 1.6s step-end infinite; }
 
-/* ── Live dot ───────────────────────────────────────────────────── */
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1;   }
+/* Live dot */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1;  }
   50%      { opacity: 0.2; }
 }
-.live-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+.live-dot { animation: live-pulse 1.5s ease-in-out infinite; }
