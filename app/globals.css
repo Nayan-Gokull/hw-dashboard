@@ -1,5 +1,12 @@
 @import "tailwindcss";
-@import url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.css');
+
+@font-face {
+  font-family: 'DSEG7 Classic';
+  src: url('/fonts/DSEG7Classic-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -50,3 +57,15 @@ html { height: 100%; }
   50%      { opacity: 0.2; }
 }
 .live-dot { animation: live-pulse 1.5s ease-in-out infinite; }
+
+/* TV broadcast transition overlay */
+@keyframes tv-wipe-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0%   0 0); }
+}
+@keyframes tv-wipe-out {
+  from { clip-path: inset(0 0%   0 100%); }
+  to   { clip-path: inset(0 0%   0 0%  ); }
+}
+.tv-wipe-in  { animation: tv-wipe-in  0.35s cubic-bezier(0.4,0,0.2,1) forwards; }
+.tv-wipe-out { animation: tv-wipe-out 0.35s cubic-bezier(0.4,0,0.2,1) reverse forwards; }

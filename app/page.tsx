@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Run } from '@/lib/store';
@@ -9,9 +9,14 @@ const AMBER       = '#F5A800';
 const AMBER_DIM   = 'rgba(245,168,0,0.10)';
 const AMBER_LABEL = 'rgba(245,168,0,0.38)';
 
+type TransPhase = 'idle' | 'in' | 'out';
+
 export default function LivePage() {
-  const [latest, setLatest]     = useState<Run | null>(null);
+  const [latest,    setLatest]    = useState<Run | null>(null);
+  const [displayed, setDisplayed] = useState<Run | null>(null);
   const [connected, setConnected] = useState(false);
+  const [transPhase, setTransPhase] = useState<TransPhase>('idle');
+  const prevRunId = useRef<number | null>(null);
 
   useEffect(() => {
     const poll = async () => {
@@ -27,7 +32,22 @@ export default function LivePage() {
     return () => clearInterval(id);
   }, []);
 
-  const digits = latest ? Math.round(latest.scale_mph).toString().padStart(3, '0') : null;
+  // Trigger broadcast transition whenever run_id changes
+  useEffect(() => {
+    const newId = latest?.run_id ?? null;
+    if (newId === prevRunId.current) return;
+    prevRunId.current = newId;
+
+    setTransPhase('in');
+    const t1 = setTimeout(() => {
+      setDisplayed(latest);   // swap content while screen is covered
+      setTransPhase('out');
+    }, 380);
+    const t2 = setTimeout(() => setTransPhase('idle'), 760);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [latest]);
+
+  const digits = displayed ? Math.round(displayed.scale_mph).toString().padStart(3, '0') : null;
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#0a0a0a', overflow: 'hidden' }}>
@@ -94,7 +114,7 @@ export default function LivePage() {
             }} />
 
             {/* ── IDLE STATE ─────────────────────────────── */}
-            {!latest && (
+            {!displayed && (
               <div style={{ position: 'relative', zIndex: 3, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px' }}>
 
                 {/* Wipe logo */}
@@ -126,26 +146,23 @@ export default function LivePage() {
             )}
 
             {/* ── RUN STATE ──────────────────────────────── */}
-            {latest && (
+            {displayed && (
               <div style={{ position: 'relative', zIndex: 3, textAlign: 'center', width: '100%', padding: '0 48px' }}>
 
                 <div style={{ color: '#222', fontSize: '11px', letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '16px' }}>
-                  RUN #{latest.run_id}
+                  RUN #{displayed.run_id}
                 </div>
 
-                {/* Ghost + active digits stacked */}
-                <div style={{ position: 'relative', display: 'inline-block', lineHeight: 1, marginBottom: '16px' }}>
-                  <div className="dseg" style={{ fontSize: 'clamp(80px, 13vw, 150px)', color: AMBER_DIM, letterSpacing: '8px' }}>
-                    888
-                  </div>
-                  <div className="dseg" style={{
-                    position: 'absolute', inset: 0,
-                    fontSize: 'clamp(80px, 13vw, 150px)', color: AMBER, letterSpacing: '8px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    filter: `drop-shadow(0 0 8px ${AMBER}) drop-shadow(0 0 28px rgba(245,140,0,0.45))`,
-                  }}>
-                    {digits}
-                  </div>
+                {/* Active digits — clean 7-segment, no ghost */}
+                <div className="dseg" style={{
+                  fontSize: 'clamp(80px, 13vw, 150px)',
+                  color: AMBER,
+                  letterSpacing: '8px',
+                  lineHeight: 1,
+                  marginBottom: '16px',
+                  textShadow: `0 0 12px rgba(245,168,0,0.5), 0 0 30px rgba(245,140,0,0.2)`,
+                }}>
+                  {digits}
                 </div>
 
                 <div style={{ color: AMBER_LABEL, fontSize: '13px', letterSpacing: '6px', textTransform: 'uppercase' }}>
@@ -158,7 +175,7 @@ export default function LivePage() {
         </div>
 
         {/* Stats strip — only shown after a run */}
-        {latest && (
+        {displayed && (
           <div style={{
             flexShrink: 0,
             display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
@@ -166,9 +183,9 @@ export default function LivePage() {
             padding: '10px 0',
           }}>
             {[
-              { label: 'Time',       value: (latest.elapsed_ms / 1000).toFixed(3) + 's' },
-              { label: 'Actual mph', value: latest.speed_mph.toFixed(2) + ' mph'         },
-              { label: 'Actual km/h',value: latest.speed_kmh.toFixed(2) + ' km/h'        },
+              { label: 'Time',       value: (displayed.elapsed_ms / 1000).toFixed(3) + 's' },
+              { label: 'Actual mph', value: displayed.speed_mph.toFixed(2) + ' mph'         },
+              { label: 'Actual km/h',value: displayed.speed_kmh.toFixed(2) + ' km/h'        },
             ].map(({ label, value }) => (
               <div key={label} style={{
                 background: '#0f0f0f', border: '1px solid #1a1a1a', borderRadius: '12px',
@@ -183,6 +200,18 @@ export default function LivePage() {
         )}
 
       </div>
+
+      {/* ── TV Broadcast transition overlay ───────────────────────── */}
+      {transPhase !== 'idle' && (
+        <div className={transPhase === 'in' ? 'tv-wipe-in' : 'tv-wipe-out'} style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: '#ffffff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Image src="/logo.png" alt="N1 Racing" width={220} height={78} style={{ objectFit: 'contain' }} />
+        </div>
+      )}
+
     </div>
   );
 }
