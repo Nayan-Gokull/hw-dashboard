@@ -150,16 +150,17 @@ export default function LivePage() {
           /* ── IDLE STATE ─────────────────────────────────────── */
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '40px', width: '100%', maxWidth: '560px' }}>
 
-            {/* Wipe-reveal logo */}
-            <div style={{ position: 'relative', overflow: 'hidden', padding: '4px 0' }}>
-              {/* Stripe that sweeps */}
+            {/* Wipe-reveal logo — explicit size so overflow:hidden clips cleanly */}
+            <div style={{ position: 'relative', width: '260px', height: '92px', overflow: 'hidden' }}>
+              {/* Thin glowing stripe at the reveal leading edge */}
               <div className="wipe-stripe" style={{
-                position: 'absolute', top: 0, bottom: 0, width: '35%',
-                background: 'linear-gradient(90deg, transparent 0%, rgba(245,184,0,0.9) 30%, rgba(240,112,0,0.9) 60%, rgba(200,41,10,0.7) 85%, transparent 100%)',
+                position: 'absolute', top: 0, height: '92px', width: '3px',
+                background: 'linear-gradient(180deg, #F5B800, #F07000, #C8290A)',
+                boxShadow: '0 0 10px rgba(245,184,0,0.9), 0 0 24px rgba(240,112,0,0.6)',
                 zIndex: 2, pointerEvents: 'none',
               }} />
               {/* Logo clipping in */}
-              <div className="logo-reveal">
+              <div className="logo-reveal" style={{ position: 'absolute', inset: 0 }}>
                 <Image src="/logo.png" alt="N1 Racing" width={260} height={92} style={{ objectFit: 'contain', display: 'block' }} />
               </div>
             </div>
