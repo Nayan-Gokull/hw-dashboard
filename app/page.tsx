@@ -7,7 +7,7 @@ import { Run } from '@/lib/store';
 
 /* ── Retro CRT screen ────────────────────────────────────────────────────── */
 function RetroDisplay({ speed, ready }: { speed?: number; ready: boolean }) {
-  const digits = speed !== undefined ? speed.toFixed(1) : undefined;
+  const digits = speed !== undefined ? speed.toFixed(0) : undefined;
 
   return (
     /* Outer bezel */
@@ -45,16 +45,16 @@ function RetroDisplay({ speed, ready }: { speed?: number; ready: boolean }) {
 
           {/* Ghost + active stacked */}
           <div style={{ position: 'relative', display: 'inline-block', lineHeight: 1 }}>
-            {/* Ghost segments */}
+            {/* Ghost segments — always 3 digits */}
             <div className="dseg" style={{
               fontSize: 'clamp(72px, 14vw, 120px)',
               color: 'rgba(245,168,0,0.13)',
               letterSpacing: '4px',
               userSelect: 'none',
             }}>
-              888.8
+              888
             </div>
-            {/* Active digits */}
+            {/* Active digits — integer only, no decimal to avoid font artifact */}
             <div className="dseg" style={{
               position: 'absolute', inset: 0,
               fontSize: 'clamp(72px, 14vw, 120px)',
@@ -63,7 +63,7 @@ function RetroDisplay({ speed, ready }: { speed?: number; ready: boolean }) {
               filter: digits ? 'drop-shadow(0 0 6px rgba(245,168,0,0.55)) drop-shadow(0 0 18px rgba(245,140,0,0.3))' : 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              {digits ?? ''}
+              {digits ? Math.round(parseFloat(digits)).toString().padStart(3, ' ') : ''}
             </div>
           </div>
 
@@ -81,17 +81,18 @@ function RetroDisplay({ speed, ready }: { speed?: number; ready: boolean }) {
             </div>
           )}
 
-          {/* READY */}
-          <div className={`dseg ${ready ? 'ready-blink' : ''}`} style={{
-            fontSize: '20px',
-            letterSpacing: '14px',
-            color: '#F5A800',
-            marginTop: digits ? '20px' : '12px',
-            opacity: ready ? 1 : 0.2,
-            filter: ready ? 'drop-shadow(0 0 4px rgba(245,168,0,0.5))' : 'none',
-          }}>
-            READY
-          </div>
+          {/* READY — only shown when idle */}
+          {ready && (
+            <div className="dseg ready-blink" style={{
+              fontSize: '20px',
+              letterSpacing: '14px',
+              color: '#F5A800',
+              marginTop: '16px',
+              filter: 'drop-shadow(0 0 4px rgba(245,168,0,0.5))',
+            }}>
+              READY
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -144,7 +145,7 @@ export default function LivePage() {
       </header>
 
       {/* Main */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px 28px 48px', gap: '40px' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px 28px 48px' }}>
 
         {!latest ? (
           /* ── IDLE STATE ─────────────────────────────────────── */
