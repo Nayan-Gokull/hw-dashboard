@@ -6,6 +6,8 @@ export interface Run {
   scale_mph: number;
   scale_kmh: number;
   timestamp: string;
+  track_angle?: number;   // ramp inclination in degrees
+  peak_g?: number;        // peak net G-force through the trap
 }
 
 // Module-level store — persists across requests in the same server instance.

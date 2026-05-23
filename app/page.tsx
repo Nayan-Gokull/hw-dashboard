@@ -349,14 +349,16 @@ export default function LivePage() {
         {!showingLaunch && displayed && (
           <div style={{
             flexShrink: 0,
-            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+            display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
             gap: '10px',
             padding: '10px 0',
           }}>
             {[
-              { label: 'Time',        num: (displayed.elapsed_ms / 1000).toFixed(3), unit: 's'    },
-              { label: 'Actual mph',  num: displayed.speed_mph.toFixed(2),            unit: 'mph'  },
-              { label: 'Actual km/h', num: displayed.speed_kmh.toFixed(2),            unit: 'km/h' },
+              { label: 'Time',        num: (displayed.elapsed_ms / 1000).toFixed(3),                      unit: 's'   },
+              { label: 'Actual mph',  num: displayed.speed_mph.toFixed(2),                                unit: 'mph' },
+              { label: 'Actual km/h', num: displayed.speed_kmh.toFixed(2),                                unit: 'km/h'},
+              { label: 'Track angle', num: displayed.track_angle != null ? displayed.track_angle.toFixed(1) : '--',  unit: '°'   },
+              { label: 'Peak G',      num: displayed.peak_g      != null ? displayed.peak_g.toFixed(2)      : '--',  unit: 'g'   },
             ].map(({ label, num, unit }) => (
               <div key={label} style={{
                 background: '#0f0f0f', border: '1px solid #1a1a1a', borderRadius: '12px',
