@@ -7,6 +7,8 @@ export async function POST(req: NextRequest) {
     elapsed_ms: body.elapsed_ms,
     speed_mph: body.speed_mph,
     speed_kmh: body.speed_kmh,
+    scale_mph: body.scale_mph ?? body.speed_mph * 64,
+    scale_kmh: body.scale_kmh ?? body.speed_kmh * 64,
     timestamp: body.timestamp ?? new Date().toISOString(),
   });
   return NextResponse.json(run, { status: 201 });

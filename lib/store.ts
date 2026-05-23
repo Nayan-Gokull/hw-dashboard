@@ -3,6 +3,8 @@ export interface Run {
   elapsed_ms: number;
   speed_mph: number;
   speed_kmh: number;
+  scale_mph: number;
+  scale_kmh: number;
   timestamp: string;
 }
 

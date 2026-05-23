@@ -1,26 +1,62 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'DSEG7';
+  src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7Classic/DSEG7Classic-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --yellow: #F5B800;
+  --orange: #F07000;
+  --red: #C8290A;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #0a0a0a;
+  color: #f0f0f0;
   font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
 }
+
+.dseg {
+  font-family: 'DSEG7', 'Courier New', monospace;
+}
+
+.speed-gradient {
+  background: linear-gradient(135deg, #F5B800 0%, #F07000 50%, #C8290A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.speed-gradient-dim {
+  background: linear-gradient(135deg, rgba(245,184,0,0.25) 0%, rgba(240,112,0,0.25) 50%, rgba(200,41,10,0.25) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stripe-bar {
+  background: linear-gradient(90deg, #F5B800 0%, #F07000 50%, #C8290A 100%);
+}
+
+.card-glow {
+  box-shadow: 0 0 60px rgba(240, 112, 0, 0.1), 0 1px 0 rgba(255,255,255,0.04) inset;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+.live-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+
+@keyframes waiting-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+.waiting-pulse { animation: waiting-pulse 2s ease-in-out infinite; }
