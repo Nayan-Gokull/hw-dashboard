@@ -8,80 +8,54 @@
   font-display: swap;
 }
 
-:root {
-  --yellow: #F5B800;
-  --orange: #F07000;
-  --red: #C8290A;
-}
-
-* { box-sizing: border-box; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   background: #0a0a0a;
   color: #f0f0f0;
   font-family: Arial, Helvetica, sans-serif;
-  margin: 0;
 }
 
-.dseg {
-  font-family: 'DSEG7', 'Courier New', monospace;
-}
+.dseg { font-family: 'DSEG7', 'Courier New', monospace; }
 
-.speed-gradient {
-  background: linear-gradient(135deg, #F5B800 0%, #F07000 50%, #C8290A 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.speed-gradient-dim {
-  background: linear-gradient(135deg, rgba(245,184,0,0.25) 0%, rgba(240,112,0,0.25) 50%, rgba(200,41,10,0.25) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
+/* ── Stripe bar ─────────────────────────────────────────────────── */
 .stripe-bar {
   background: linear-gradient(90deg, #F5B800 0%, #F07000 50%, #C8290A 100%);
 }
 
-.card-glow {
-  box-shadow: 0 0 60px rgba(240, 112, 0, 0.1), 0 1px 0 rgba(255,255,255,0.04) inset;
+/* ── Logo wipe reveal ───────────────────────────────────────────── */
+@keyframes logo-clip-reveal {
+  0%, 6%     { clip-path: inset(0 101% 0 0); }
+  40%        { clip-path: inset(0 0%   0 0); opacity: 1; }
+  68%        { clip-path: inset(0 0%   0 0); opacity: 1; }
+  86%        { clip-path: inset(0 0%   0 0); opacity: 0; }
+  87%, 100%  { clip-path: inset(0 101% 0 0); opacity: 0; }
+}
+.logo-reveal {
+  animation: logo-clip-reveal 5s ease-in-out infinite;
 }
 
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.2; }
+@keyframes wipe-stripe-move {
+  0%, 6%   { transform: translateX(-120%); opacity: 1; }
+  40%      { transform: translateX( 220%); opacity: 1; }
+  41%, 86% { transform: translateX( 220%); opacity: 0; }
+  87%      { transform: translateX(-120%); opacity: 0; }
+  88%      { transform: translateX(-120%); opacity: 1; }
+  100%     { transform: translateX(-120%); opacity: 1; }
 }
-.live-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+.wipe-stripe { animation: wipe-stripe-move 5s ease-in-out infinite; }
 
-@keyframes waiting-pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.8; }
-}
-.waiting-pulse { animation: waiting-pulse 2s ease-in-out infinite; }
-
-@keyframes logo-glow {
-  0%, 100% { box-shadow: 0 0 40px rgba(245,184,0,0.15), 0 0 80px rgba(240,112,0,0.08); }
-  50%       { box-shadow: 0 0 80px rgba(245,184,0,0.35), 0 0 160px rgba(200,41,10,0.2); }
-}
-.logo-glow { animation: logo-glow 2.5s ease-in-out infinite; }
-
+/* ── READY blink ────────────────────────────────────────────────── */
 @keyframes ready-blink {
-  0%, 45%  { opacity: 1; }
-  50%, 95% { opacity: 0.08; }
-  100%     { opacity: 1; }
+  0%, 44%  { opacity: 1;    }
+  50%, 94% { opacity: 0.07; }
+  100%     { opacity: 1;    }
 }
 .ready-blink { animation: ready-blink 1.6s step-end infinite; }
 
-@keyframes stripe-sweep {
-  0%   { left: -60%; }
-  100% { left: 120%; }
+/* ── Live dot ───────────────────────────────────────────────────── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1;   }
+  50%      { opacity: 0.2; }
 }
-.stripe-sweep {
-  position: absolute;
-  top: 0; bottom: 0;
-  width: 40%;
-  background: linear-gradient(90deg, transparent, rgba(245,184,0,0.06), rgba(240,112,0,0.04), transparent);
-  animation: stripe-sweep 3s ease-in-out infinite;
-}
+.live-dot { animation: pulse-dot 1.5s ease-in-out infinite; }

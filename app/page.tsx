@@ -5,6 +5,100 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Run } from '@/lib/store';
 
+/* ── Retro CRT screen ────────────────────────────────────────────────────── */
+function RetroDisplay({ speed, ready }: { speed?: number; ready: boolean }) {
+  const digits = speed !== undefined ? speed.toFixed(1) : undefined;
+
+  return (
+    /* Outer bezel */
+    <div style={{
+      background: '#111',
+      borderRadius: '14px',
+      padding: '14px',
+      border: '2px solid #1c1c1c',
+      boxShadow: '0 8px 40px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',
+    }}>
+      {/* Screen surface */}
+      <div style={{
+        background: '#070500',
+        borderRadius: '8px',
+        padding: '32px 36px 24px',
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.9), inset 0 0 0 1px rgba(245,168,0,0.06)',
+      }}>
+
+        {/* Scanlines */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', borderRadius: '8px',
+          background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 4px)',
+        }} />
+
+        {/* Vignette */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 3, pointerEvents: 'none', borderRadius: '8px',
+          background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.65) 100%)',
+        }} />
+
+        {/* Digits */}
+        <div style={{ position: 'relative', zIndex: 4, textAlign: 'center' }}>
+
+          {/* Ghost + active stacked */}
+          <div style={{ position: 'relative', display: 'inline-block', lineHeight: 1 }}>
+            {/* Ghost segments */}
+            <div className="dseg" style={{
+              fontSize: 'clamp(72px, 14vw, 120px)',
+              color: 'rgba(245,168,0,0.13)',
+              letterSpacing: '4px',
+              userSelect: 'none',
+            }}>
+              888.8
+            </div>
+            {/* Active digits */}
+            <div className="dseg" style={{
+              position: 'absolute', inset: 0,
+              fontSize: 'clamp(72px, 14vw, 120px)',
+              color: digits ? '#F5A800' : 'transparent',
+              letterSpacing: '4px',
+              filter: digits ? 'drop-shadow(0 0 6px rgba(245,168,0,0.55)) drop-shadow(0 0 18px rgba(245,140,0,0.3))' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {digits ?? ''}
+            </div>
+          </div>
+
+          {/* Unit label */}
+          {digits && (
+            <div style={{
+              color: 'rgba(245,168,0,0.5)',
+              fontSize: '13px',
+              letterSpacing: '5px',
+              textTransform: 'uppercase',
+              marginTop: '10px',
+              fontWeight: 600,
+            }}>
+              MPH — SCALE 1:64
+            </div>
+          )}
+
+          {/* READY */}
+          <div className={`dseg ${ready ? 'ready-blink' : ''}`} style={{
+            fontSize: '20px',
+            letterSpacing: '14px',
+            color: '#F5A800',
+            marginTop: digits ? '20px' : '12px',
+            opacity: ready ? 1 : 0.2,
+            filter: ready ? 'drop-shadow(0 0 4px rgba(245,168,0,0.5))' : 'none',
+          }}>
+            READY
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Page ─────────────────────────────────────────────────────────────────── */
 export default function LivePage() {
   const [latest, setLatest] = useState<Run | null>(null);
   const [connected, setConnected] = useState(false);
@@ -29,20 +123,19 @@ export default function LivePage() {
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column' }}>
 
       {/* Top stripe */}
-      <div className="stripe-bar" style={{ height: '3px', width: '100%', flexShrink: 0 }} />
+      <div className="stripe-bar" style={{ height: '3px', flexShrink: 0 }} />
 
       {/* Header */}
-      <header style={{ padding: '20px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div style={{ background: 'white', borderRadius: '10px', padding: '7px 14px', display: 'inline-flex' }}>
-          <Image src="/logo.png" alt="N1 Racing" width={88} height={30} style={{ objectFit: 'contain' }} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div className={connected ? 'live-dot' : ''} style={{ width: '8px', height: '8px', borderRadius: '50%', background: connected ? '#F5B800' : '#333' }} />
-          <span style={{ color: '#555', fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600 }}>
-            {connected ? 'Live' : 'Offline'}
-          </span>
-          <span style={{ color: '#222', margin: '0 4px' }}>·</span>
-          <Link href="/history" style={{ color: '#444', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', textDecoration: 'none' }}
+      <header style={{ padding: '18px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <Image src="/logo.png" alt="N1 Racing" width={90} height={32} style={{ objectFit: 'contain' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className={connected ? 'live-dot' : ''} style={{ width: '7px', height: '7px', borderRadius: '50%', background: connected ? '#F5B800' : '#333' }} />
+            <span style={{ color: '#555', fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600 }}>
+              {connected ? 'Live' : 'Offline'}
+            </span>
+          </div>
+          <Link href="/history" style={{ color: '#444', fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', textDecoration: 'none', fontWeight: 600 }}
             onMouseEnter={e => (e.currentTarget.style.color = '#F5B800')}
             onMouseLeave={e => (e.currentTarget.style.color = '#444')}>
             History
@@ -50,84 +143,71 @@ export default function LivePage() {
         </div>
       </header>
 
-      {/* Main content */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 32px 48px' }}>
+      {/* Main */}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px 28px 48px', gap: '40px' }}>
 
-        {latest ? (
-          <div style={{ width: '100%', maxWidth: '700px' }}>
+        {!latest ? (
+          /* ── IDLE STATE ─────────────────────────────────────── */
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '40px', width: '100%', maxWidth: '560px' }}>
+
+            {/* Wipe-reveal logo */}
+            <div style={{ position: 'relative', overflow: 'hidden', padding: '4px 0' }}>
+              {/* Stripe that sweeps */}
+              <div className="wipe-stripe" style={{
+                position: 'absolute', top: 0, bottom: 0, width: '35%',
+                background: 'linear-gradient(90deg, transparent 0%, rgba(245,184,0,0.9) 30%, rgba(240,112,0,0.9) 60%, rgba(200,41,10,0.7) 85%, transparent 100%)',
+                zIndex: 2, pointerEvents: 'none',
+              }} />
+              {/* Logo clipping in */}
+              <div className="logo-reveal">
+                <Image src="/logo.png" alt="N1 Racing" width={260} height={92} style={{ objectFit: 'contain', display: 'block' }} />
+              </div>
+            </div>
+
+            {/* Retro display — idle */}
+            <div style={{ width: '100%' }}>
+              <RetroDisplay ready={true} />
+            </div>
+          </div>
+
+        ) : (
+          /* ── RUN STATE ──────────────────────────────────────── */
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', width: '100%', maxWidth: '600px' }}>
 
             {/* Run label */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
+            <div style={{ alignSelf: 'stretch', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div className="stripe-bar" style={{ width: '4px', height: '20px', borderRadius: '2px' }} />
+                <div className="stripe-bar" style={{ width: '3px', height: '18px', borderRadius: '2px' }} />
                 <span style={{ color: '#555', fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 600 }}>Scale Speed · 1:64</span>
               </div>
-              <span style={{ color: '#2a2a2a', fontSize: '12px', fontFamily: 'monospace', letterSpacing: '2px' }}>RUN #{latest.run_id}</span>
+              <span style={{ color: '#2a2a2a', fontSize: '11px', fontFamily: 'monospace', letterSpacing: '2px' }}>RUN #{latest.run_id}</span>
             </div>
 
-            {/* Hero speed */}
-            <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-              <div className="dseg speed-gradient" style={{ fontSize: 'clamp(96px, 18vw, 160px)', lineHeight: 0.9, letterSpacing: '-4px' }}>
-                {latest.scale_mph.toFixed(1)}
-              </div>
-              <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-                <span style={{ color: '#f0f0f0', fontSize: '22px', fontWeight: 800, letterSpacing: '6px', textTransform: 'uppercase' }}>MPH</span>
-                <div className="stripe-bar" style={{ width: '1px', height: '20px' }} />
-                <span style={{ color: '#444', fontSize: '20px', fontWeight: 500 }}>{latest.scale_kmh.toFixed(1)} km/h</span>
-              </div>
+            {/* Retro display — live speed */}
+            <div style={{ width: '100%' }}>
+              <RetroDisplay speed={latest.scale_mph} ready={false} />
             </div>
 
-            {/* Divider */}
-            <div style={{ margin: '40px 0', height: '1px', background: 'linear-gradient(90deg, transparent, #2a2a2a 20%, #2a2a2a 80%, transparent)' }} />
-
-            {/* Stats cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-              <div style={{ background: '#141414', borderRadius: '16px', padding: '22px 20px', border: '1px solid #1e1e1e' }}>
-                <p style={{ color: '#444', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px' }}>Time</p>
-                <p className="dseg" style={{ color: '#f0f0f0', fontSize: '30px', lineHeight: 1 }}>{(latest.elapsed_ms / 1000).toFixed(3)}</p>
-                <p style={{ color: '#333', fontSize: '11px', marginTop: '8px' }}>seconds</p>
-              </div>
-              <div style={{ background: '#141414', borderRadius: '16px', padding: '22px 20px', border: '1px solid #1e1e1e' }}>
-                <p style={{ color: '#444', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px' }}>Actual mph</p>
-                <p className="dseg" style={{ color: '#f0f0f0', fontSize: '30px', lineHeight: 1 }}>{latest.speed_mph.toFixed(2)}</p>
-                <p style={{ color: '#333', fontSize: '11px', marginTop: '8px' }}>real scale</p>
-              </div>
-              <div style={{ background: '#141414', borderRadius: '16px', padding: '22px 20px', border: '1px solid #1e1e1e' }}>
-                <p style={{ color: '#444', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px' }}>Actual km/h</p>
-                <p className="dseg" style={{ color: '#f0f0f0', fontSize: '30px', lineHeight: 1 }}>{latest.speed_kmh.toFixed(2)}</p>
-                <p style={{ color: '#333', fontSize: '11px', marginTop: '8px' }}>real scale</p>
-              </div>
-            </div>
-
-            <p style={{ textAlign: 'center', color: '#1e1e1e', fontSize: '11px', marginTop: '28px', fontFamily: 'monospace', letterSpacing: '2px' }}>
-              {new Date(latest.timestamp).toLocaleTimeString()}
-            </p>
-
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', position: 'relative', overflow: 'hidden', padding: '20px 0' }}>
-            {/* Sweeping shimmer */}
-            <div className="stripe-sweep" />
-
-            {/* Big glowing logo */}
-            <div className="logo-glow" style={{ display: 'inline-block', background: 'white', borderRadius: '24px', padding: '24px 40px', marginBottom: '40px' }}>
-              <Image src="/logo.png" alt="N1 Racing" width={200} height={70} style={{ objectFit: 'contain', display: 'block' }} />
-            </div>
-
-            {/* Stripe accent */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginBottom: '28px' }}>
-              {['#F5B800','#F07000','#C8290A'].map(c => (
-                <div key={c} style={{ width: '32px', height: '3px', borderRadius: '2px', background: c, opacity: 0.6 }} />
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', width: '100%' }}>
+              {[
+                { label: 'Time',       value: (latest.elapsed_ms / 1000).toFixed(3), unit: 'seconds'   },
+                { label: 'Actual mph', value: latest.speed_mph.toFixed(2),           unit: 'real scale' },
+                { label: 'Actual km/h',value: latest.speed_kmh.toFixed(2),           unit: 'real scale' },
+              ].map(({ label, value, unit }) => (
+                <div key={label} style={{ background: '#111', borderRadius: '14px', padding: '18px', border: '1px solid #1c1c1c' }}>
+                  <p style={{ color: '#3a3a3a', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>{label}</p>
+                  <p className="dseg" style={{ color: '#888', fontSize: '26px', lineHeight: 1 }}>{value}</p>
+                  <p style={{ color: '#2a2a2a', fontSize: '11px', marginTop: '6px' }}>{unit}</p>
+                </div>
               ))}
             </div>
 
-            {/* DSEG ready */}
-            <div className="dseg ready-blink" style={{ fontSize: '22px', letterSpacing: '12px', textTransform: 'uppercase', color: '#F5B800' }}>
-              READY
-            </div>
+            <p style={{ color: '#1c1c1c', fontSize: '11px', fontFamily: 'monospace', letterSpacing: '2px' }}>
+              {new Date(latest.timestamp).toLocaleTimeString()}
+            </p>
           </div>
         )}
-
       </main>
     </div>
   );

@@ -20,9 +20,7 @@ export default function HistoryPage() {
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div className="bg-white rounded-xl px-3 py-2">
-            <Image src="/logo.png" alt="N1 Racing" width={80} height={28} className="object-contain" />
-          </div>
+          <Image src="/logo.png" alt="N1 Racing" width={100} height={36} style={{ objectFit: 'contain' }} />
           <Link href="/" className="text-[#444] hover:text-[#F5B800] text-xs uppercase tracking-widest transition-colors">
             ← Live
           </Link>
