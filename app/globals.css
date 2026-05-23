@@ -69,3 +69,24 @@ html { height: 100%; }
 }
 .tv-wipe-in  { animation: tv-wipe-in  0.55s cubic-bezier(0.4,0,0.2,1) forwards; }
 .tv-wipe-out { animation: tv-wipe-out 0.55s cubic-bezier(0.4,0,0.2,1) reverse forwards; }
+
+/* New best badge */
+@keyframes new-best-in {
+  0%   { opacity: 0; transform: scale(0.82) translateY(8px); }
+  60%  { opacity: 1; transform: scale(1.05) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes new-best-glow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+.new-best-badge {
+  animation: new-best-in 0.4s ease-out forwards, new-best-glow 1.1s ease-in-out 0.4s infinite;
+}
+
+/* Signal lost */
+@keyframes signal-lost-blink {
+  0%, 49%   { opacity: 1;    }
+  50%, 100% { opacity: 0.12; }
+}
+.signal-lost-blink { animation: signal-lost-blink 1.1s step-end infinite; }

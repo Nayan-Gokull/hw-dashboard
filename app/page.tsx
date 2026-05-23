@@ -11,43 +11,116 @@ const AMBER_LABEL = 'rgba(245,168,0,0.38)';
 
 type TransPhase = 'idle' | 'in' | 'out';
 
-export default function LivePage() {
-  const [latest,    setLatest]    = useState<Run | null>(null);
-  const [displayed, setDisplayed] = useState<Run | null>(null);
-  const [connected, setConnected] = useState(false);
-  const [transPhase, setTransPhase] = useState<TransPhase>('idle');
-  const prevRunId = useRef<number | null>(null);
+function playBeep() {
+  try {
+    const ctx  = new AudioContext();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = 920;
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.22);
+  } catch { /* autoplay policy blocked — silent fail */ }
+}
 
+export default function LivePage() {
+  const [allRuns,      setAllRuns]      = useState<Run[]>([]);
+  const [latest,       setLatest]       = useState<Run | null>(null);
+  const [displayed,    setDisplayed]    = useState<Run | null>(null);
+  const [connected,    setConnected]    = useState(false);
+  const [transPhase,   setTransPhase]   = useState<TransPhase>('idle');
+  const [countedSpeed, setCountedSpeed] = useState(0);
+  const [isNewBest,    setIsNewBest]    = useState(false);
+  const [signalLost,   setSignalLost]   = useState(false);
+
+  const prevRunId    = useRef<number | null>(null);
+  const lastSuccess  = useRef<number>(Date.now());
+  const animFrame    = useRef<number | null>(null);
+  const newBestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Poll every 500 ms ──────────────────────────────────────────────────────
   useEffect(() => {
     const poll = async () => {
       try {
         const res  = await fetch('/api/runs');
         const runs: Run[] = await res.json();
         setConnected(true);
+        setSignalLost(false);
+        lastSuccess.current = Date.now();
+        setAllRuns(runs);
         if (runs.length > 0) setLatest(runs[0]);
-      } catch { setConnected(false); }
+      } catch {
+        setConnected(false);
+      }
     };
     poll();
     const id = setInterval(poll, 500);
     return () => clearInterval(id);
   }, []);
 
-  // Trigger broadcast transition whenever run_id changes
+  // ── Signal-lost: browser can't reach API for > 10 s ───────────────────────
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (Date.now() - lastSuccess.current > 10_000) setSignalLost(true);
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // ── Broadcast transition on new run_id ────────────────────────────────────
   useEffect(() => {
     const newId = latest?.run_id ?? null;
     if (newId === prevRunId.current) return;
     prevRunId.current = newId;
 
+    playBeep();
     setTransPhase('in');
     const t1 = setTimeout(() => {
-      setDisplayed(latest);   // swap content while screen is covered
+      setDisplayed(latest);
       setTransPhase('out');
     }, 600);
     const t2 = setTimeout(() => setTransPhase('idle'), 1200);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [latest]);
 
-  const digits = displayed ? Math.round(displayed.scale_mph).toString().padStart(3, '0') : null;
+  // ── Animated counter + new-best check (fires when transition fully clears) ─
+  useEffect(() => {
+    if (transPhase !== 'idle' || !displayed) return;
+
+    const target = Math.round(displayed.scale_mph);
+
+    // Best of every run OTHER than the currently displayed one
+    const prevBest = allRuns
+      .filter(r => r.run_id !== displayed.run_id)
+      .reduce((best, r) => Math.max(best, r.scale_mph), 0);
+
+    if (displayed.scale_mph > prevBest) {
+      setIsNewBest(true);
+      if (newBestTimer.current) clearTimeout(newBestTimer.current);
+      newBestTimer.current = setTimeout(() => setIsNewBest(false), 3500);
+    } else {
+      setIsNewBest(false);
+    }
+
+    // Animate 0 → target over 800 ms with ease-out cubic
+    if (animFrame.current) cancelAnimationFrame(animFrame.current);
+    setCountedSpeed(0);
+    const t0       = performance.now();
+    const duration = 800;
+    const step = (now: number) => {
+      const pct   = Math.min((now - t0) / duration, 1);
+      const eased = 1 - Math.pow(1 - pct, 3);
+      setCountedSpeed(Math.round(eased * target));
+      if (pct < 1) animFrame.current = requestAnimationFrame(step);
+    };
+    animFrame.current = requestAnimationFrame(step);
+    return () => { if (animFrame.current) cancelAnimationFrame(animFrame.current); };
+  }, [transPhase, displayed, allRuns]);
+
+  const digits = displayed ? countedSpeed.toString().padStart(3, '0') : null;
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#0a0a0a', overflow: 'hidden' }}>
@@ -56,11 +129,7 @@ export default function LivePage() {
       <div className="stripe-bar" style={{ height: '3px', flexShrink: 0 }} />
 
       {/* Header */}
-      <header style={{
-        flexShrink: 0,
-        padding: '14px 28px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
+      <header style={{ flexShrink: 0, padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Image src="/logo.png" alt="N1 Racing" width={88} height={30} style={{ objectFit: 'contain' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -72,7 +141,8 @@ export default function LivePage() {
               {connected ? 'Live' : 'Offline'}
             </span>
           </div>
-          <Link href="/history" style={{ color: '#3a3a3a', fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', textDecoration: 'none', fontWeight: 600 }}
+          <Link href="/history"
+            style={{ color: '#3a3a3a', fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', textDecoration: 'none', fontWeight: 600 }}
             onMouseEnter={e => (e.currentTarget.style.color = AMBER)}
             onMouseLeave={e => (e.currentTarget.style.color = '#3a3a3a')}>
             History
@@ -117,31 +187,49 @@ export default function LivePage() {
             {!displayed && (
               <div style={{ position: 'relative', zIndex: 3, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px' }}>
 
-                {/* Wipe logo */}
-                <div style={{ position: 'relative', width: '300px', height: '107px', overflow: 'hidden' }}>
-                  <div className="wipe-stripe" style={{
-                    position: 'absolute', top: 0, height: '107px', width: '3px',
-                    background: 'linear-gradient(180deg, #F5B800, #F07000, #C8290A)',
-                    boxShadow: '0 0 12px rgba(245,184,0,0.9), 0 0 24px rgba(240,112,0,0.5)',
-                    zIndex: 2,
-                  }} />
-                  <div className="logo-reveal" style={{ position: 'absolute', inset: 0 }}>
-                    <Image src="/logo.png" alt="N1 Racing" width={300} height={107} style={{ objectFit: 'contain', display: 'block' }} />
-                  </div>
-                </div>
+                {signalLost ? (
+                  /* Signal lost */
+                  <>
+                    <div className="dseg" style={{ fontSize: 'clamp(20px, 3vw, 30px)', color: '#C8290A', letterSpacing: '8px' }}>
+                      SIGNAL
+                    </div>
+                    <div className="dseg signal-lost-blink" style={{
+                      fontSize: 'clamp(28px, 4.5vw, 44px)', color: '#C8290A', letterSpacing: '8px',
+                      filter: 'drop-shadow(0 0 10px #C8290A)',
+                    }}>
+                      LOST
+                    </div>
+                  </>
+                ) : (
+                  /* Normal ready state */
+                  <>
+                    {/* Wipe logo */}
+                    <div style={{ position: 'relative', width: '300px', height: '107px', overflow: 'hidden' }}>
+                      <div className="wipe-stripe" style={{
+                        position: 'absolute', top: 0, height: '107px', width: '3px',
+                        background: 'linear-gradient(180deg, #F5B800, #F07000, #C8290A)',
+                        boxShadow: '0 0 12px rgba(245,184,0,0.9), 0 0 24px rgba(240,112,0,0.5)',
+                        zIndex: 2,
+                      }} />
+                      <div className="logo-reveal" style={{ position: 'absolute', inset: 0 }}>
+                        <Image src="/logo.png" alt="N1 Racing" width={300} height={107} style={{ objectFit: 'contain', display: 'block' }} />
+                      </div>
+                    </div>
 
-                {/* Ghost digits */}
-                <div className="dseg" style={{ fontSize: 'clamp(64px, 10vw, 110px)', color: AMBER_DIM, letterSpacing: '6px', lineHeight: 1 }}>
-                  888
-                </div>
+                    {/* Ghost digits */}
+                    <div className="dseg" style={{ fontSize: 'clamp(64px, 10vw, 110px)', color: AMBER_DIM, letterSpacing: '6px', lineHeight: 1 }}>
+                      888
+                    </div>
 
-                {/* READY */}
-                <div className="dseg ready-blink" style={{
-                  fontSize: '22px', letterSpacing: '14px', color: AMBER,
-                  filter: `drop-shadow(0 0 6px ${AMBER})`,
-                }}>
-                  READY
-                </div>
+                    {/* READY */}
+                    <div className="dseg ready-blink" style={{
+                      fontSize: '22px', letterSpacing: '14px', color: AMBER,
+                      filter: `drop-shadow(0 0 6px ${AMBER})`,
+                    }}>
+                      READY
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -153,7 +241,7 @@ export default function LivePage() {
                   RUN #{displayed.run_id}
                 </div>
 
-                {/* Active digits — clean 7-segment, no ghost */}
+                {/* Hero speed — animated counter */}
                 <div className="dseg" style={{
                   fontSize: 'clamp(80px, 13vw, 150px)',
                   color: AMBER,
@@ -166,8 +254,27 @@ export default function LivePage() {
                 </div>
 
                 <div style={{ color: AMBER_LABEL, fontSize: '13px', letterSpacing: '6px', textTransform: 'uppercase' }}>
-                  MPH &nbsp;·&nbsp; SCALE 1:64
+                  SCALE SPEED
                 </div>
+
+                {/* New best badge */}
+                {isNewBest && (
+                  <div className="new-best-badge" style={{
+                    marginTop: '22px',
+                    display: 'inline-block',
+                    padding: '5px 18px',
+                    border: `1px solid ${AMBER}`,
+                    borderRadius: '4px',
+                    color: AMBER,
+                    fontSize: '12px',
+                    letterSpacing: '6px',
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    filter: `drop-shadow(0 0 8px ${AMBER})`,
+                  }}>
+                    NEW BEST
+                  </div>
+                )}
 
               </div>
             )}
@@ -191,7 +298,6 @@ export default function LivePage() {
                 background: '#0f0f0f', border: '1px solid #1a1a1a', borderRadius: '12px',
                 padding: '14px 16px',
                 display: 'flex', flexDirection: 'column', gap: '6px',
-                overflow: 'visible',
               }}>
                 <span style={{ color: '#333', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase' }}>{label}</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
@@ -212,7 +318,7 @@ export default function LivePage() {
           background: '#ffffff',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Image src="/logo.png" alt="N1 Racing" width={220} height={78} style={{ objectFit: 'contain' }} />
+          <Image src="/logo.png" alt="N1 Racing" width={420} height={150} style={{ objectFit: 'contain' }} />
         </div>
       )}
 
