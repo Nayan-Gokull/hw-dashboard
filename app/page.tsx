@@ -28,7 +28,6 @@ function playBeep() {
 }
 
 export default function LivePage() {
-  const [allRuns,      setAllRuns]      = useState<Run[]>([]);
   const [latest,       setLatest]       = useState<Run | null>(null);
   const [displayed,    setDisplayed]    = useState<Run | null>(null);
   const [connected,    setConnected]    = useState(false);
@@ -41,6 +40,7 @@ export default function LivePage() {
   const lastSuccess  = useRef<number>(Date.now());
   const animFrame    = useRef<number | null>(null);
   const newBestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const allRunsRef   = useRef<Run[]>([]);
 
   // ── Poll every 500 ms ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function LivePage() {
         setConnected(true);
         setSignalLost(false);
         lastSuccess.current = Date.now();
-        setAllRuns(runs);
+        allRunsRef.current = runs;
         if (runs.length > 0) setLatest(runs[0]);
       } catch {
         setConnected(false);
@@ -93,7 +93,7 @@ export default function LivePage() {
     const target = Math.round(displayed.scale_mph);
 
     // Best of every run OTHER than the currently displayed one
-    const prevBest = allRuns
+    const prevBest = allRunsRef.current
       .filter(r => r.run_id !== displayed.run_id)
       .reduce((best, r) => Math.max(best, r.scale_mph), 0);
 
@@ -118,7 +118,7 @@ export default function LivePage() {
     };
     animFrame.current = requestAnimationFrame(step);
     return () => { if (animFrame.current) cancelAnimationFrame(animFrame.current); };
-  }, [transPhase, displayed, allRuns]);
+  }, [transPhase, displayed]);
 
   const digits = displayed ? countedSpeed.toString().padStart(3, '0') : null;
 
