@@ -42,8 +42,8 @@ export default function LivePage() {
     const t1 = setTimeout(() => {
       setDisplayed(latest);   // swap content while screen is covered
       setTransPhase('out');
-    }, 380);
-    const t2 = setTimeout(() => setTransPhase('idle'), 760);
+    }, 600);
+    const t2 = setTimeout(() => setTransPhase('idle'), 1200);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [latest]);
 

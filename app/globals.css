@@ -67,5 +67,5 @@ html { height: 100%; }
   from { clip-path: inset(0 0%   0 100%); }
   to   { clip-path: inset(0 0%   0 0%  ); }
 }
-.tv-wipe-in  { animation: tv-wipe-in  0.35s cubic-bezier(0.4,0,0.2,1) forwards; }
-.tv-wipe-out { animation: tv-wipe-out 0.35s cubic-bezier(0.4,0,0.2,1) reverse forwards; }
+.tv-wipe-in  { animation: tv-wipe-in  0.55s cubic-bezier(0.4,0,0.2,1) forwards; }
+.tv-wipe-out { animation: tv-wipe-out 0.55s cubic-bezier(0.4,0,0.2,1) reverse forwards; }
