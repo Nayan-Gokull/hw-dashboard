@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Run } from '@/lib/store';
-import type { LaunchState } from '@/app/api/status/route';
 
 const AMBER       = '#F5A800';
 const AMBER_DIM   = 'rgba(245,168,0,0.10)';
@@ -36,8 +35,6 @@ export default function LivePage() {
   const [countedSpeed, setCountedSpeed] = useState(0);
   const [isNewBest,    setIsNewBest]    = useState(false);
   const [signalLost,   setSignalLost]   = useState(false);
-  const [launchState,  setLaunchState]  = useState<LaunchState>('idle');
-  const [countdown,    setCountdown]    = useState<number | null>(null);
 
   const prevRunId    = useRef<number | null>(null);
   const lastSuccess  = useRef<number>(Date.now());
@@ -45,22 +42,16 @@ export default function LivePage() {
   const newBestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const allRunsRef   = useRef<Run[]>([]);
 
-  // ── Poll runs + status every 500 ms ───────────────────────────────────────
+  // ── Poll runs every 500 ms ─────────────────────────────────────────────────
   useEffect(() => {
     const poll = async () => {
       try {
-        const [runsRes, statusRes] = await Promise.all([
-          fetch('/api/runs'),
-          fetch('/api/status'),
-        ]);
-        const runs: Run[]              = await runsRes.json();
-        const status: { state: LaunchState } = await statusRes.json();
-
+        const res  = await fetch('/api/runs');
+        const runs: Run[] = await res.json();
         setConnected(true);
         setSignalLost(false);
         lastSuccess.current = Date.now();
-        setLaunchState(status.state);
-        allRunsRef.current = runs;
+        allRunsRef.current  = runs;
         if (runs.length > 0)
           setLatest(prev => (prev?.run_id === runs[0].run_id ? prev : runs[0]));
       } catch {
@@ -79,21 +70,6 @@ export default function LivePage() {
     }, 1000);
     return () => clearInterval(id);
   }, []);
-
-  // ── Countdown animation (3 → 2 → 1) driven by launchState ────────────────
-  useEffect(() => {
-    if (launchState === 'countdown') {
-      setCountdown(3);
-      let count = 3;
-      const id = setInterval(() => {
-        count--;
-        setCountdown(count > 0 ? count : null);
-        if (count <= 0) clearInterval(id);
-      }, 1000);
-      return () => clearInterval(id);
-    }
-    setCountdown(null);
-  }, [launchState]);
 
   // ── Broadcast transition on new run_id ────────────────────────────────────
   useEffect(() => {
@@ -115,8 +91,7 @@ export default function LivePage() {
   useEffect(() => {
     if (transPhase !== 'idle' || !displayed) return;
 
-    const target = Math.round(displayed.scale_mph);
-
+    const target   = Math.round(displayed.scale_mph);
     const prevBest = allRunsRef.current
       .filter(r => r.run_id !== displayed.run_id)
       .reduce((best, r) => Math.max(best, r.scale_mph), 0);
@@ -145,16 +120,11 @@ export default function LivePage() {
 
   const digits = displayed ? countedSpeed.toString().padStart(3, '0') : null;
 
-  // CRT shows launch state when ESP32 is actively launching
-  const showingLaunch = launchState !== 'idle';
-
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#0a0a0a', overflow: 'hidden' }}>
 
-      {/* Top accent stripe */}
       <div className="stripe-bar" style={{ height: '3px', flexShrink: 0 }} />
 
-      {/* Header */}
       <header style={{ flexShrink: 0, padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Image src="/logo.png" alt="N1 Racing" width={88} height={30} style={{ objectFit: 'contain' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -176,7 +146,6 @@ export default function LivePage() {
         </div>
       </header>
 
-      {/* Retro screen — hero element */}
       <div style={{ flex: 1, padding: '0 28px 12px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
         {/* CRT outer bezel */}
@@ -188,7 +157,7 @@ export default function LivePage() {
           padding: '10px',
           boxShadow: '0 20px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.03)',
         }}>
-          {/* CRT screen surface */}
+          {/* CRT screen */}
           <div style={{
             height: '100%',
             background: '#080600',
@@ -198,80 +167,18 @@ export default function LivePage() {
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             boxShadow: 'inset 0 0 80px rgba(0,0,0,0.85)',
           }}>
-            {/* Scanlines */}
-            <div style={{
-              position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-              background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.14) 0px, rgba(0,0,0,0.14) 1px, transparent 1px, transparent 4px)',
-            }} />
-            {/* Vignette */}
-            <div style={{
-              position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-              background: 'radial-gradient(ellipse 75% 60% at 50% 50%, transparent 40%, rgba(0,0,0,0.75) 100%)',
-            }} />
+            <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
+              background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.14) 0px, rgba(0,0,0,0.14) 1px, transparent 1px, transparent 4px)' }} />
+            <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
+              background: 'radial-gradient(ellipse 75% 60% at 50% 50%, transparent 40%, rgba(0,0,0,0.75) 100%)' }} />
 
-            {/* ── LAUNCH STATES ──────────────────────────────── */}
-            {showingLaunch && (
-              <div style={{ position: 'relative', zIndex: 3, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
-
-                {/* COUNTDOWN */}
-                {launchState === 'countdown' && (
-                  <>
-                    <div style={{ color: '#333', fontSize: '11px', letterSpacing: '6px', textTransform: 'uppercase' }}>
-                      LAUNCH IN
-                    </div>
-                    <div
-                      key={countdown}
-                      className="dseg countdown-pop"
-                      style={{
-                        fontSize: 'clamp(100px, 18vw, 200px)',
-                        color: AMBER,
-                        lineHeight: 1,
-                        textShadow: `0 0 20px rgba(245,168,0,0.6), 0 0 60px rgba(245,140,0,0.25)`,
-                      }}
-                    >
-                      {countdown ?? '!'}
-                    </div>
-                  </>
-                )}
-
-                {/* ARMED — gate open, waiting for car */}
-                {launchState === 'armed' && (
-                  <>
-                    <div style={{ color: '#222', fontSize: '11px', letterSpacing: '6px', textTransform: 'uppercase' }}>
-                      GATE OPEN
-                    </div>
-                    <div className="dseg ready-blink" style={{
-                      fontSize: 'clamp(32px, 5vw, 56px)',
-                      color: AMBER,
-                      letterSpacing: '12px',
-                      filter: `drop-shadow(0 0 10px ${AMBER})`,
-                    }}>
-                      ARMED
-                    </div>
-                    <div style={{ color: '#2a2a2a', fontSize: '11px', letterSpacing: '4px', textTransform: 'uppercase' }}>
-                      WAITING FOR CAR
-                    </div>
-                  </>
-                )}
-
-              </div>
-            )}
-
-            {/* ── IDLE STATE ─────────────────────────────── */}
-            {!showingLaunch && !displayed && (
+            {/* ── IDLE STATE ── */}
+            {!displayed && (
               <div style={{ position: 'relative', zIndex: 3, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px' }}>
-
                 {signalLost ? (
                   <>
-                    <div className="dseg" style={{ fontSize: 'clamp(20px, 3vw, 30px)', color: '#C8290A', letterSpacing: '8px' }}>
-                      SIGNAL
-                    </div>
-                    <div className="dseg signal-lost-blink" style={{
-                      fontSize: 'clamp(28px, 4.5vw, 44px)', color: '#C8290A', letterSpacing: '8px',
-                      filter: 'drop-shadow(0 0 10px #C8290A)',
-                    }}>
-                      LOST
-                    </div>
+                    <div className="dseg" style={{ fontSize: 'clamp(20px, 3vw, 30px)', color: '#C8290A', letterSpacing: '8px' }}>SIGNAL</div>
+                    <div className="dseg signal-lost-blink" style={{ fontSize: 'clamp(28px, 4.5vw, 44px)', color: '#C8290A', letterSpacing: '8px', filter: 'drop-shadow(0 0 10px #C8290A)' }}>LOST</div>
                   </>
                 ) : (
                   <>
@@ -286,55 +193,35 @@ export default function LivePage() {
                         <Image src="/logo.png" alt="N1 Racing" width={300} height={107} style={{ objectFit: 'contain', display: 'block' }} />
                       </div>
                     </div>
-                    <div className="dseg" style={{ fontSize: 'clamp(64px, 10vw, 110px)', color: AMBER_DIM, letterSpacing: '6px', lineHeight: 1 }}>
-                      888
-                    </div>
-                    <div className="dseg ready-blink" style={{
-                      fontSize: '22px', letterSpacing: '14px', color: AMBER,
-                      filter: `drop-shadow(0 0 6px ${AMBER})`,
-                    }}>
-                      READY
-                    </div>
+                    <div className="dseg" style={{ fontSize: 'clamp(64px, 10vw, 110px)', color: AMBER_DIM, letterSpacing: '6px', lineHeight: 1 }}>888</div>
+                    <div className="dseg ready-blink" style={{ fontSize: '22px', letterSpacing: '14px', color: AMBER, filter: `drop-shadow(0 0 6px ${AMBER})` }}>READY</div>
                   </>
                 )}
               </div>
             )}
 
-            {/* ── RUN STATE ──────────────────────────────── */}
-            {!showingLaunch && displayed && (
+            {/* ── RUN STATE ── */}
+            {displayed && (
               <div style={{ position: 'relative', zIndex: 3, textAlign: 'center', width: '100%', padding: '0 48px' }}>
-
                 <div style={{ color: '#222', fontSize: '11px', letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '16px' }}>
                   RUN #{displayed.run_id}
                 </div>
-
                 <div className="dseg" style={{
-                  fontSize: 'clamp(80px, 13vw, 150px)',
-                  color: AMBER,
-                  letterSpacing: '8px',
-                  lineHeight: 1,
-                  marginBottom: '16px',
+                  fontSize: 'clamp(80px, 13vw, 150px)', color: AMBER,
+                  letterSpacing: '8px', lineHeight: 1, marginBottom: '16px',
                   textShadow: `0 0 12px rgba(245,168,0,0.5), 0 0 30px rgba(245,140,0,0.2)`,
                 }}>
                   {digits}
                 </div>
-
                 <div style={{ color: AMBER_LABEL, fontSize: '13px', letterSpacing: '6px', textTransform: 'uppercase' }}>
                   SCALE SPEED
                 </div>
-
                 {isNewBest && (
                   <div className="new-best-badge" style={{
-                    marginTop: '22px',
-                    display: 'inline-block',
-                    padding: '5px 18px',
-                    border: `1px solid ${AMBER}`,
-                    borderRadius: '4px',
-                    color: AMBER,
-                    fontSize: '12px',
-                    letterSpacing: '6px',
-                    textTransform: 'uppercase',
-                    fontWeight: 700,
+                    marginTop: '22px', display: 'inline-block', padding: '5px 18px',
+                    border: `1px solid ${AMBER}`, borderRadius: '4px',
+                    color: AMBER, fontSize: '12px', letterSpacing: '6px',
+                    textTransform: 'uppercase', fontWeight: 700,
                     filter: `drop-shadow(0 0 8px ${AMBER})`,
                   }}>
                     NEW BEST
@@ -346,24 +233,22 @@ export default function LivePage() {
         </div>
 
         {/* Stats strip */}
-        {!showingLaunch && displayed && (
+        {displayed && (
           <div style={{
             flexShrink: 0,
             display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
-            gap: '10px',
-            padding: '10px 0',
+            gap: '10px', padding: '10px 0',
           }}>
             {[
-              { label: 'Time',        num: (displayed.elapsed_ms / 1000).toFixed(3),                      unit: 's'   },
-              { label: 'Actual mph',  num: displayed.speed_mph.toFixed(2),                                unit: 'mph' },
-              { label: 'Actual km/h', num: displayed.speed_kmh.toFixed(2),                                unit: 'km/h'},
-              { label: 'Track angle', num: displayed.track_angle != null ? displayed.track_angle.toFixed(1) : '--',  unit: '°'   },
-              { label: 'Peak G',      num: displayed.peak_g      != null ? displayed.peak_g.toFixed(2)      : '--',  unit: 'g'   },
+              { label: 'Time',        num: (displayed.elapsed_ms / 1000).toFixed(3),                                    unit: 's'   },
+              { label: 'Actual mph',  num: displayed.speed_mph.toFixed(2),                                              unit: 'mph' },
+              { label: 'Actual km/h', num: displayed.speed_kmh.toFixed(2),                                              unit: 'km/h'},
+              { label: 'Track angle', num: displayed.track_angle != null ? displayed.track_angle.toFixed(1) : '--',     unit: '°'   },
+              { label: 'Peak G',      num: displayed.peak_g      != null ? displayed.peak_g.toFixed(2)      : '--',     unit: 'g'   },
             ].map(({ label, num, unit }) => (
               <div key={label} style={{
                 background: '#0f0f0f', border: '1px solid #1a1a1a', borderRadius: '12px',
-                padding: '14px 16px',
-                display: 'flex', flexDirection: 'column', gap: '6px',
+                padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '6px',
               }}>
                 <span style={{ color: '#333', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase' }}>{label}</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
