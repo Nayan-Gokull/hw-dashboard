@@ -52,7 +52,8 @@ export default function LivePage() {
         setSignalLost(false);
         lastSuccess.current = Date.now();
         allRunsRef.current = runs;
-        if (runs.length > 0) setLatest(runs[0]);
+        if (runs.length > 0)
+          setLatest(prev => (prev?.run_id === runs[0].run_id ? prev : runs[0]));
       } catch {
         setConnected(false);
       }
